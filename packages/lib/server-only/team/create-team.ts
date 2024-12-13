@@ -6,9 +6,10 @@ import { getTeamRelatedPrices } from '@documenso/ee/server-only/stripe/get-team-
 import { mapStripeSubscriptionToPrismaUpsertAction } from '@documenso/ee/server-only/stripe/webhook/on-subscription-updated';
 import { IS_BILLING_ENABLED } from '@documenso/lib/constants/app';
 import { AppError, AppErrorCode } from '@documenso/lib/errors/app-error';
+import type { RequestMetadata } from '@documenso/lib/universal/extract-request-metadata';
 import { subscriptionsContainsActivePlan } from '@documenso/lib/utils/billing';
 import { prisma } from '@documenso/prisma';
-import { Prisma, TeamMemberRole } from '@documenso/prisma/client';
+import { Prisma, TeamMemberRole, UserSecurityAuditLogType } from '@documenso/prisma/client';
 
 import { stripe } from '../stripe';
 
@@ -29,6 +30,11 @@ export type CreateTeamOptions = {
    * Used as the URL path, example: https://documenso.com/t/{teamUrl}/settings
    */
   teamUrl: string;
+
+  /**
+   * Request metadata for logging purposes.
+   */
+  requestMetadata?: RequestMetadata;
 };
 
 export type CreateTeamResponse =
@@ -47,6 +53,7 @@ export const createTeam = async ({
   userId,
   teamName,
   teamUrl,
+  requestMetadata,
 }: CreateTeamOptions): Promise<CreateTeamResponse> => {
   const user = await prisma.user.findUniqueOrThrow({
     where: {
@@ -74,23 +81,33 @@ export const createTeam = async ({
   }
 
   try {
-    // Create the team directly if no payment is required.
     if (!isPaymentRequired) {
-      await prisma.team.create({
-        data: {
-          name: teamName,
-          url: teamUrl,
-          ownerUserId: user.id,
-          customerId,
-          members: {
-            create: [
-              {
-                userId,
-                role: TeamMemberRole.ADMIN,
-              },
-            ],
+      await prisma.$transaction(async (tx) => {
+        await tx.team.create({
+          data: {
+            name: teamName,
+            url: teamUrl,
+            ownerUserId: user.id,
+            customerId,
+            members: {
+              create: [
+                {
+                  userId,
+                  role: TeamMemberRole.ADMIN,
+                },
+              ],
+            },
           },
-        },
+        });
+
+        await tx.userSecurityAuditLog.create({
+          data: {
+            userId: user.id,
+            type: UserSecurityAuditLogType.TEAM_CREATION,
+            userAgent: requestMetadata?.userAgent,
+            ipAddress: requestMetadata?.ipAddress,
+          },
+        });
       });
 
       return {
@@ -98,7 +115,6 @@ export const createTeam = async ({
       };
     }
 
-    // Create a pending team if payment is required.
     const pendingTeam = await prisma.$transaction(async (tx) => {
       const existingTeamWithUrl = await tx.team.findUnique({
         where: {
@@ -114,7 +130,7 @@ export const createTeam = async ({
         throw new AppError(AppErrorCode.UNKNOWN_ERROR, 'Missing customer ID for pending teams.');
       }
 
-      return await tx.teamPending.create({
+      const pendingTeam = await tx.teamPending.create({
         data: {
           name: teamName,
           url: teamUrl,
@@ -122,6 +138,17 @@ export const createTeam = async ({
           customerId,
         },
       });
+
+      await tx.userSecurityAuditLog.create({
+        data: {
+          userId: user.id,
+          type: UserSecurityAuditLogType.PENDING_TEAM_CREATION,
+          userAgent: requestMetadata?.userAgent,
+          ipAddress: requestMetadata?.ipAddress,
+        },
+      });
+
+      return pendingTeam;
     });
 
     return {

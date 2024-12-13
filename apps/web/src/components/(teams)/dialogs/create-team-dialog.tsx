@@ -12,6 +12,7 @@ import type { z } from 'zod';
 import { useUpdateSearchParams } from '@documenso/lib/client-only/hooks/use-update-search-params';
 import { WEBAPP_BASE_URL } from '@documenso/lib/constants/app';
 import { AppError, AppErrorCode } from '@documenso/lib/errors/app-error';
+import type { RequestMetadata } from '@documenso/lib/universal/extract-request-metadata';
 import { trpc } from '@documenso/trpc/react';
 import { ZCreateTeamMutationSchema } from '@documenso/trpc/server/team-router/schema';
 import { Button } from '@documenso/ui/primitives/button';
@@ -37,6 +38,7 @@ import { useToast } from '@documenso/ui/primitives/use-toast';
 
 export type CreateTeamDialogProps = {
   trigger?: React.ReactNode;
+  requestMetadata?: RequestMetadata;
 } & Omit<DialogPrimitive.DialogProps, 'children'>;
 
 const ZCreateTeamFormSchema = ZCreateTeamMutationSchema.pick({
@@ -46,7 +48,7 @@ const ZCreateTeamFormSchema = ZCreateTeamMutationSchema.pick({
 
 type TCreateTeamFormSchema = z.infer<typeof ZCreateTeamFormSchema>;
 
-export const CreateTeamDialog = ({ trigger, ...props }: CreateTeamDialogProps) => {
+export const CreateTeamDialog = ({ trigger, requestMetadata, ...props }: CreateTeamDialogProps) => {
   const { toast } = useToast();
 
   const router = useRouter();
@@ -72,6 +74,7 @@ export const CreateTeamDialog = ({ trigger, ...props }: CreateTeamDialogProps) =
       const response = await createTeam({
         teamName,
         teamUrl,
+        requestMetadata,
       });
 
       setOpen(false);

@@ -1,36 +1,29 @@
-'use client';
+import { headers } from 'next/headers';
 
-import { AnimatePresence } from 'framer-motion';
-
-import { trpc } from '@documenso/trpc/react';
-import { AnimateGenericFadeInOut } from '@documenso/ui/components/animate/animate-generic-fade-in-out';
+import { extractNextHeaderRequestMetadata } from '@documenso/lib/universal/extract-request-metadata';
 
 import { SettingsHeader } from '~/components/(dashboard)/settings/layout/header';
 import { CreateTeamDialog } from '~/components/(teams)/dialogs/create-team-dialog';
 import { UserSettingsTeamsPageDataTable } from '~/components/(teams)/tables/user-settings-teams-page-data-table';
 
-import { TeamEmailUsage } from './team-email-usage';
+import { TeamEmailContainer } from './team-email-container';
 import { TeamInvitations } from './team-invitations';
 
 export default function TeamsSettingsPage() {
-  const { data: teamEmail } = trpc.team.getTeamEmailByEmail.useQuery();
+  const requestHeaders = Object.fromEntries(headers().entries());
+
+  const requestMetadata = extractNextHeaderRequestMetadata(requestHeaders);
 
   return (
     <div>
       <SettingsHeader title="Teams" subtitle="Manage all teams you are currently associated with.">
-        <CreateTeamDialog />
+        <CreateTeamDialog requestMetadata={requestMetadata} />
       </SettingsHeader>
 
       <UserSettingsTeamsPageDataTable />
 
       <div className="mt-8 space-y-8">
-        <AnimatePresence>
-          {teamEmail && (
-            <AnimateGenericFadeInOut>
-              <TeamEmailUsage teamEmail={teamEmail} />
-            </AnimateGenericFadeInOut>
-          )}
-        </AnimatePresence>
+        <TeamEmailContainer />
 
         <TeamInvitations />
       </div>

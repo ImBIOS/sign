@@ -57,6 +57,12 @@ export const ZCreateTeamBillingPortalMutationSchema = z.object({
 export const ZCreateTeamMutationSchema = z.object({
   teamName: ZTeamNameSchema,
   teamUrl: ZTeamUrlSchema,
+  requestMetadata: z
+    .object({
+      userAgent: z.string().optional(),
+      ipAddress: z.string().optional(),
+    })
+    .optional(),
 });
 
 export const ZCreateTeamEmailVerificationMutationSchema = z.object({

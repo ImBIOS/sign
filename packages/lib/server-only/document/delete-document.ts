@@ -75,6 +75,14 @@ export const deleteDocument = async ({ id, userId, status }: DeleteDocumentOptio
         }),
       );
     }
+
+    return await prisma.document.delete({
+      where: {
+        id,
+        userId,
+        status: DocumentStatus.PENDING,
+      },
+    });
   }
 
   // If the document is not a draft, only soft-delete.

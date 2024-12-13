@@ -6,6 +6,7 @@ export type FindTemplatesOptions = {
   teamId?: number;
   page: number;
   perPage: number;
+  query?: string;
 };
 
 export const findTemplates = async ({
@@ -13,10 +14,14 @@ export const findTemplates = async ({
   teamId,
   page = 1,
   perPage = 10,
+  query,
 }: FindTemplatesOptions) => {
   let whereFilter: Prisma.TemplateWhereInput = {
     userId,
     teamId: null,
+    title: {
+      contains: query,
+    },
   };
 
   if (teamId !== undefined) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useContext, useState } from 'react';
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -22,6 +22,7 @@ import { TemplateType } from '~/components/formatter/template-type';
 
 import { DataTableActionDropdown } from './data-table-action-dropdown';
 import { DataTableTitle } from './data-table-title';
+import { TemplateTableContext } from './templater-table-provider';
 
 type TemplatesDataTableProps = {
   templates: Template[];
@@ -42,7 +43,8 @@ export const TemplatesDataTable = ({
   templateRootPath,
   teamId,
 }: TemplatesDataTableProps) => {
-  const [isPending, startTransition] = useTransition();
+  const { isPending, startTransition } = useContext(TemplateTableContext);
+
   const updateSearchParams = useUpdateSearchParams();
 
   const { remaining } = useLimits();

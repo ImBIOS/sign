@@ -28,34 +28,33 @@ import {
   FormLabel,
   FormMessage,
 } from '@documenso/ui/primitives/form/form';
-import { Input } from '@documenso/ui/primitives/input';
+import { SignaturePad } from '@documenso/ui/primitives/signature-pad';
 import type { Toast } from '@documenso/ui/primitives/use-toast';
 import { useToast } from '@documenso/ui/primitives/use-toast';
 
 export type DeleteTeamDialogProps = {
   teamId: number;
-  teamName: string;
   trigger?: React.ReactNode;
 };
 
-export const DeleteTeamDialog = ({ trigger, teamId, teamName }: DeleteTeamDialogProps) => {
+export const DeleteTeamDialog = ({ trigger, teamId }: DeleteTeamDialogProps) => {
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
   const { toast } = useToast();
 
-  const deleteMessage = `delete ${teamName}`;
+  const errorMessage = 'We need your signature to proceed';
 
   const ZDeleteTeamFormSchema = z.object({
-    teamName: z.literal(deleteMessage, {
-      errorMap: () => ({ message: `You must enter '${deleteMessage}' to proceed` }),
-    }),
+    signature: z
+      .string({ errorMap: () => ({ message: errorMessage }) })
+      .min(1, { message: errorMessage }),
   });
 
   const form = useForm({
     resolver: zodResolver(ZDeleteTeamFormSchema),
     defaultValues: {
-      teamName: '',
+      signature: '',
     },
   });
 
@@ -128,15 +127,19 @@ export const DeleteTeamDialog = ({ trigger, teamId, teamName }: DeleteTeamDialog
             >
               <FormField
                 control={form.control}
-                name="teamName"
-                render={({ field }) => (
+                name="signature"
+                render={({ field: { onChange } }) => (
                   <FormItem>
-                    <FormLabel>
-                      Confirm by typing <span className="text-destructive">{deleteMessage}</span>
-                    </FormLabel>
+                    <FormLabel>Sign Here</FormLabel>
                     <FormControl>
-                      <Input className="bg-background" {...field} />
+                      <SignaturePad
+                        className="h-36 w-full"
+                        disabled={form.formState.isSubmitting}
+                        containerClassName="mt-2 rounded-lg border bg-background"
+                        onChange={(v) => onChange(v ?? '')}
+                      />
                     </FormControl>
+
                     <FormMessage />
                   </FormItem>
                 )}

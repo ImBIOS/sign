@@ -1,11 +1,14 @@
 import { prisma } from '@documenso/prisma';
 import type { Prisma } from '@documenso/prisma/client';
 
+export type FindTemplatesSortType = 'date' | 'asc' | 'desc';
+
 export type FindTemplatesOptions = {
   userId: number;
   teamId?: number;
   page: number;
   perPage: number;
+  sortBy?: FindTemplatesSortType;
 };
 
 export const findTemplates = async ({
@@ -13,6 +16,7 @@ export const findTemplates = async ({
   teamId,
   page = 1,
   perPage = 10,
+  sortBy = 'desc',
 }: FindTemplatesOptions) => {
   let whereFilter: Prisma.TemplateWhereInput = {
     userId,
@@ -41,7 +45,13 @@ export const findTemplates = async ({
       },
       skip: Math.max(page - 1, 0) * perPage,
       orderBy: {
-        createdAt: 'desc',
+        ...(sortBy === 'date'
+          ? {
+              createdAt: 'desc',
+            }
+          : {
+              title: sortBy === 'asc' ? 'asc' : 'desc',
+            }),
       },
     }),
     prisma.template.count({
